@@ -11,34 +11,38 @@ Commons Messageは、外部定義されたメッセージ定義情報を利用�
   Commons Messageではメッセージコードのサフィックスでメッセージレベルを表現するコード体系を規約化しています。  
   メッセージを定義するプロパティリソースでは、下記のようにコードを定義します。  
 
-      MSG0001-E=エラーメッセージ。
-      MSG0002-W=警告メッセージ。
-      MSG0003-I=情報メッセージ。
-      MSG0004-D=デバッグメッセージ。
-      MSG0005-T=トレースメッセージ。
-      MSG0006-H=非表示内部メッセージ。
+  ```
+  MSG0001-E=エラーメッセージ。
+  MSG0002-W=警告メッセージ。
+  MSG0003-I=情報メッセージ。
+  MSG0004-D=デバッグメッセージ。
+  MSG0005-T=トレースメッセージ。
+  MSG0006-H=非表示内部メッセージ。
+  ```
 
 - メッセージレベルを考慮したメッセージの利用  
   コード体系化したメッセージにより下記のように利用者側で該当のメッセージを利用して上位に例外をスローした場合、上位ではエラーレベルのメッセージがスローされたのか、情報レベルのメッセージがスローされたのかなどの判断を行えます。  
   下記は例外を用いた極端な例となりますが、メッセージ定義側にメッセージレベル定義情報を持たせることで、メッセージごとの業務実装分岐を軽減することを目的としています(ログ出力などにおいてもメッセージによって出力先を分岐させる際にログ出力メソッド自体の切り替えを上位で吸収することなどを想定しています)。  
 
-      private void test() {
-        try {
-          messageThrow();
-        } catch(SampleException e) {
-          Message message = e.getMessage();
-          if (message.getLevel() == MessageLevel.ERROR) {
-            // エラーメッセージ時の処理
-          } else {
-            // エラーメッセージ以外時の処理
-          }
-        }
+  ```java
+  private void test() {
+    try {
+      messageThrow();
+    } catch(SampleException e) {
+      Message message = e.getMessage();
+      if (message.getLevel() == MessageLevel.ERROR) {
+        // エラーメッセージ時の処理
+      } else {
+        // エラーメッセージ以外時の処理
       }
+    }
+  }
 
-      private void messageThrow() throws SampleException {
-        Message message = Messages.instance().get("MSG0001");
-        throw new SampleException(message);
-      }
+  private void messageThrow() throws SampleException {
+    Message message = Messages.instance().get("MSG0001");
+    throw new SampleException(message);
+  }
+  ```
 
 ## Documentation
 ライブラリに関するAPI仕様は各クラスのJavadocにて記載しています。  
