@@ -1,5 +1,7 @@
 package org.ideaccum.libs.commons.message;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -7,6 +9,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.ideaccum.libs.commons.message.exception.AlreadyExistsMessageCode;
+import org.ideaccum.libs.commons.util.ResourceUtil;
 
 /**
  * コードとメッセージが対となる形式でのメッセージリソースを管理するインタフェースを提供します。<br>
@@ -20,9 +23,13 @@ import org.ideaccum.libs.commons.message.exception.AlreadyExistsMessageCode;
  *<!--
  * 更新日		更新者			更新内容
  * 2018/06/13	Kitagawa		新規作成
+ * 2019/05/08	Kitagawa		Javascriptからのメッセージ定義利用用のスクリプトソース出力メソッド({@link #writeMessagesScript(PrintWriter)})を追加
  *-->
  */
 public final class Messages implements Serializable {
+
+	/** スクリプトリソースパス */
+	private static final String SCRIPT_RESOURCE = "/" + Messages.class.getPackage().getName().replace(".", "/") + "/Messages.js";
 
 	/** クラスインスタンス */
 	private static Messages instance;
@@ -106,6 +113,27 @@ public final class Messages implements Serializable {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * 出力ストリームに対してメッセージ操作用スクリプトを出力します。<br>
+	 * @param writer 出力ストリーム
+	 * @throws IOException レスポンス操作時に入出力例外が発生した場合にスローされます
+	 */
+	public void writeMessagesScript(PrintWriter writer) throws IOException {
+		writer.println(ResourceUtil.getText(SCRIPT_RESOURCE, "utf-8"));
+		for (String key : Messages.instance().keySet()) {
+			Message message = Messages.instance().get(key);
+			String code = message.getCode();
+			String level = message.getLevel().getName();
+			String define = message.getDefine() //
+					.replace("\\", "\\\\") //
+					.replace("\"", "\\\"") //
+					.replace("\n", "\\n") //
+			;
+			writer.println("Messages.add(\"" + code + "\", \"" + level + "\", \"" + define + "\");");
+		}
+		writer.flush();
 	}
 
 	/**
