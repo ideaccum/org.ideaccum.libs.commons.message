@@ -9,11 +9,9 @@ import org.ideaccum.libs.commons.util.StringUtil;
  * また、各列挙定義が提供するサフィックス文字をメッセージリソースとして定義する際のコードのサフィックスに付与します。<br>
  * </p>
  * 
- * @author Kitagawa<br>
- * 
  *<!--
- * 更新日		更新者			更新内容
- * 2018/06/13	Kitagawa		新規作成
+ * 更新日      更新者           更新内容
+ * 2018/06/13  Kitagawa         新規作成
  *-->
  */
 public enum MessageLevel {

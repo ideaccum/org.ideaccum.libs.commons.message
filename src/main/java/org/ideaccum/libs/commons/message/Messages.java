@@ -18,12 +18,10 @@ import org.ideaccum.libs.commons.util.ResourceUtil;
  * このメッセージリソースクラスはアプリケーション実行中は永続的に内容を保持し続けます。<br>
  * </p>
  * 
- * @author Kitagawa<br>
- * 
  *<!--
- * 更新日		更新者			更新内容
- * 2018/06/13	Kitagawa		新規作成
- * 2019/05/08	Kitagawa		Javascriptからのメッセージ定義利用用のスクリプトソース出力メソッド({@link #writeMessagesScript(PrintWriter)})を追加
+ * 更新日      更新者           更新内容
+ * 2018/06/13  Kitagawa         新規作成
+ * 2019/05/08  Kitagawa         Javascriptからのメッセージ定義利用用のスクリプトソース出力メソッド({@link #writeMessagesScript(PrintWriter)})を追加
  *-->
  */
 public final class Messages implements Serializable {

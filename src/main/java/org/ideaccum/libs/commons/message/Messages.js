@@ -5,11 +5,9 @@
  * このスクリプトファイルはクライアントからの直接リンクを行うものではなく、{@link org.ideaccum.libs.commons.message.MessagesResponse}から動的にレスポンスして利用されます。<br>
  * </p>
  * 
- * @author Kitagawa<br>
- * 
  *<!--
- * 更新日		更新者			更新内容
- * 2019/05/08	Kitagawa		新規作成
+ * 更新日      更新者           更新内容
+ * 2019/05/08  Kitagawa         新規作成
  *-->
  */
 (function(window, document, undefined) {

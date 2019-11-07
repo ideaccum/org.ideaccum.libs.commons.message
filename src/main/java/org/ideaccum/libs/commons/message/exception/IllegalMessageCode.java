@@ -6,11 +6,9 @@ package org.ideaccum.libs.commons.message.exception;
  * ログメッセージコード体系はプレフィックスにログレベルを持たない純粋なメッセージコードとサフィックスに"-"を持つメッセージレベルを持ちます。<br>
  * </p>
  * 
- * @author Kitagawa<br>
- * 
  *<!--
- * 更新日		更新者			更新内容
- * 2018/06/13	Kitagawa		新規作成
+ * 更新日      更新者           更新内容
+ * 2018/06/13  Kitagawa         新規作成
  *-->
  */
 public class IllegalMessageCode extends RuntimeException {

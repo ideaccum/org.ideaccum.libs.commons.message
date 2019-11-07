@@ -6,11 +6,9 @@ package org.ideaccum.libs.commons.message.exception;
  * {@link org.ideaccum.libs.commons.message.Messages#setPermitOverwrite(boolean)}によって上書きを許容する設定となっている場合は発生しない例外です。<br>
  * </p>
  * 
- * @author Kitagawa<br>
- * 
  *<!--
- * 更新日		更新者			更新内容
- * 2018/07/10	Kitagawa		新規作成
+ * 更新日      更新者           更新内容
+ * 2018/07/10  Kitagawa         新規作成
  *-->
  */
 public class AlreadyExistsMessageCode extends RuntimeException {

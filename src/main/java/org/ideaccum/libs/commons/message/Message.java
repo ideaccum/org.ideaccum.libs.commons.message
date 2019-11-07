@@ -13,11 +13,9 @@ import org.ideaccum.libs.commons.util.StringUtil;
  * また、このクラスが管理、提供するメッセージコードはレベルサフィックスを持たない、純粋なコードとなります。<br>
  * </p>
  * 
- * @author Kitagawa<br>
- * 
  *<!--
- * 更新日		更新者			更新内容
- * 2018/06/14	Kitagawa		新規作成
+ * 更新日      更新者           更新内容
+ * 2018/06/14  Kitagawa         新規作成
  *-->
  */
 public final class Message implements Serializable {
