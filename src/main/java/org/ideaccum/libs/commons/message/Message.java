@@ -2,7 +2,7 @@ package org.ideaccum.libs.commons.message;
 
 import java.io.Serializable;
 
-import org.ideaccum.libs.commons.message.exception.IllegalMessageCode;
+import org.ideaccum.libs.commons.message.exception.IllegalMessageCodeException;
 import org.ideaccum.libs.commons.util.Loop;
 import org.ideaccum.libs.commons.util.StringUtil;
 
@@ -37,7 +37,7 @@ public final class Message implements Serializable {
 	Message(String defineCode, String defineMessage) {
 		super();
 		if (!isValidDefineCode(defineCode)) {
-			throw new IllegalMessageCode(defineCode);
+			throw new IllegalMessageCodeException(defineCode);
 		}
 		String buffer = defineCode.trim();
 		this.code = buffer.substring(0, buffer.lastIndexOf('-'));
@@ -152,7 +152,7 @@ public final class Message implements Serializable {
 	 */
 	public static String getMessageCode(String defineCode) {
 		if (!isValidDefineCode(defineCode)) {
-			throw new IllegalMessageCode(defineCode);
+			throw new IllegalMessageCodeException(defineCode);
 		}
 		String buffer = StringUtil.trim(defineCode);
 		return buffer.substring(0, buffer.lastIndexOf('-'));

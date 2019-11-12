@@ -1,6 +1,7 @@
 package org.ideaccum.libs.commons.message;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.HashMap;
@@ -8,8 +9,18 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.ideaccum.libs.commons.message.exception.AlreadyExistsMessageCode;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.ideaccum.libs.commons.message.exception.MessageLoadException;
+import org.ideaccum.libs.commons.util.PropertiesUtil;
 import org.ideaccum.libs.commons.util.ResourceUtil;
+import org.ideaccum.libs.commons.util.StringUtil;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * コードとメッセージが対となる形式でのメッセージリソースを管理するインタフェースを提供します。<br>
@@ -21,7 +32,7 @@ import org.ideaccum.libs.commons.util.ResourceUtil;
  *<!--
  * 更新日      更新者           更新内容
  * 2018/06/13  Kitagawa         新規作成
- * 2019/05/08  Kitagawa         Javascriptからのメッセージ定義利用用のスクリプトソース出力メソッド({@link #writeMessagesScript(PrintWriter)})を追加
+ * 2019/05/08  Kitagawa         Javascriptからのメッセージ定義利用用のスクリプトソース出力メソッド({@link #writeScript(PrintWriter)})を追加
  *-->
  */
 public final class Messages implements Serializable {
@@ -29,38 +40,52 @@ public final class Messages implements Serializable {
 	/** スクリプトリソースパス */
 	private static final String SCRIPT_RESOURCE = "/" + Messages.class.getPackage().getName().replace(".", "/") + "/Messages.js";
 
-	/** クラスインスタンス */
-	private static Messages instance;
+	/** シングルトンインスタンス */
+	private static Messages global = new Messages(false);
 
 	/** ロックオブジェクト */
 	private static Object lock = new Object();
 
+	/** シングルトンインスタンス値継承フラグ */
+	private boolean inheritGlobal;
+
 	/** メッセージデータ */
 	private Map<String, Message> messages;
 
-	/** メッセージ追加時の上書き許可フラグ */
-	private boolean permitOverwrite;
-
 	/**
 	 * コンストラクタ<br>
+	 * @param inheritGlobal シングルトンインスタンス値継承フラグ
 	 */
-	Messages() {
+	private Messages(boolean inheritGlobal) {
 		super();
 		this.messages = new HashMap<>();
-		this.permitOverwrite = true;
+		this.inheritGlobal = inheritGlobal;
 	}
 
 	/**
-	 * クラスインスタンスを取得します。<br>
-	 * @return クラスインスタンス
+	 * クラスローダー上で単一インスタンスが保証されるグローバルメッセージ定義情報を取得します。<br>
+	 * @return グローバルメッセージ定義情報
 	 */
-	public static Messages instance() {
-		synchronized (lock) {
-			if (instance == null) {
-				instance = new Messages();
-			}
-			return instance;
-		}
+	public static Messages global() {
+		return global;
+	}
+
+	/**
+	 * グローバルメッセージ定義情報とは別のインスタンスとしてメッセージ定義情報を生成します。<br>
+	 * @param inheritGlobal 個別メッセージ定義情報に情報が存在しない場合はメッセージ定義情報を継承して提供する場合にtrueを指定
+	 * @return 環境設定情報
+	 */
+	public static Messages create(boolean inheritGlobal) {
+		return new Messages(inheritGlobal);
+	}
+
+	/**
+	 * グローバルメッセージ定義情報とは別のインスタンスとしてメッセージ定義情報を生成します。<br>
+	 * 個別メッセージ定義情報に情報が存在しない場合はグローバルメッセージ定義情報を継承して値が提供されます。<br>
+	 * @return 環境設定情報
+	 */
+	public static Messages create() {
+		return create(true);
 	}
 
 	/**
@@ -114,14 +139,22 @@ public final class Messages implements Serializable {
 	}
 
 	/**
+	 * 管理されているメッセージのキーセットを取得します。<br>
+	 * @return 管理されているメッセージのキーセット
+	 */
+	public Set<String> keySet() {
+		return messages.keySet();
+	}
+
+	/**
 	 * 出力ストリームに対してメッセージ操作用スクリプトを出力します。<br>
 	 * @param writer 出力ストリーム
 	 * @throws IOException レスポンス操作時に入出力例外が発生した場合にスローされます
 	 */
-	public void writeMessagesScript(PrintWriter writer) throws IOException {
+	public void writeScript(PrintWriter writer) throws IOException {
 		writer.println(ResourceUtil.getText(SCRIPT_RESOURCE, "utf-8"));
-		for (String key : Messages.instance().keySet()) {
-			Message message = Messages.instance().get(key);
+		for (String key : keySet()) {
+			Message message = get(key);
 			String code = message.getCode();
 			String level = message.getLevel().getName();
 			String define = message.getDefine() //
@@ -135,63 +168,162 @@ public final class Messages implements Serializable {
 	}
 
 	/**
-	 * 管理されているメッセージのキーセットを取得します。<br>
-	 * @return 管理されているメッセージのキーセット
+	 * メッセージリソース内容を読み込みクラスインスタンスに展開します。<br>
+	 * @param filePath メッセージリソースパス
+	 * @param mode メッセージリソース読み込み時の挙動
+	 * @return ロード後の自身のインスタンス
 	 */
-	public Set<String> keySet() {
-		return messages.keySet();
-	}
-
-	/**
-	 * レベルサフィックス付きメッセージコードをもとにメッセージを追加設定します。<br>
-	 * 既に同一キーでメッセージが管理されている場合は上書きされます。<br>
-	 * @param defineCode レベルサフィックス付きメッセージコード
-	 * @param defineMessage メッセージ内容
-	 */
-	public void addMessage(String defineCode, String defineMessage) {
+	public Messages load(String filePath, MessagesLoadMode mode) {
 		synchronized (lock) {
-			Message message = new Message(defineCode, defineMessage);
-			if (!permitOverwrite && messages.containsKey(message.getCode())) {
-				throw new AlreadyExistsMessageCode(message.getCode());
+			try {
+				/*
+				 * 対象プロパティ読み込み
+				 */
+				Map<String, Message> loaded = loadDispatch(filePath);
+
+				/*
+				 * 読み込みモードごと処理
+				 */
+				if (mode == MessagesLoadMode.REPLACE_ALL || mode == null) {
+					// すべてのプロパティを置き換える場合は現状の保持情報をクリア
+					messages.clear();
+					messages.putAll(loaded);
+				} else if (mode == MessagesLoadMode.REPLACE_EXISTS) {
+					// 既存プロパティに対しては上書きする場合は読み込んだプロパティをプット
+					messages.putAll(loaded);
+				} else if (mode == MessagesLoadMode.SKIP_EXISTS) {
+					// 既存プロパティに対しては現状維持とする場合はプロパティごとに判定しながらプット
+					for (String key : loaded.keySet()) {
+						if (messages.containsKey(key)) {
+							continue;
+						}
+						Message value = loaded.get(key);
+						messages.put(key, value);
+					}
+				}
+				return this;
+			} catch (Throwable e) {
+				throw new MessageLoadException(e);
 			}
-			messages.put(message.getCode(), message);
 		}
 	}
 
 	/**
-	 * レベルサフィックス付きメッセージコードで定義されているプロパティリソースからメッセージ定義内容を追加設定します。<br>
-	 * 既に同一キーでメッセージが管理されている場合は上書きされます。<br>
-	 * @param properties メッセージ定義プロパティリソース
+	 * メッセージリソース内容を読み込みクラスインスタンスに展開します。<br>
+	 * このメソッドによる読み込みは現在管理されているメッセージ情報を破棄して新たに読み込みます。<br>
+	 * 読み込み方法を指定してメッセージを反映する場合は{@link #load(String, MessagesLoadMode)}を利用して下さい。<br>
+	 * @param filePath メッセージリソースパス
+	 * @return ロード後の自身のインスタンス
 	 */
-	public void addMessage(Properties properties) {
-		if (properties == null) {
+	public Messages load(String filePath) {
+		return load(filePath, MessagesLoadMode.REPLACE_ALL);
+	}
+
+	/**
+	 * メッセージを読み込みます。<br>
+	 * @param filePath メッセージリソースパス
+	 * @return 読み込まれたメッセージリソース
+	 * @throws IOException 入出力例外が発生した場合にスローされます
+	 * @throws ParserConfigurationException XMLドキュメントビルダの生成に失敗した場合にスローされます
+	 * @throws SAXException XML定義形式が不正な場合にスローされます
+	 */
+	private Map<String, Message> loadDispatch(String filePath) throws IOException, ParserConfigurationException, SAXException {
+		if (!ResourceUtil.exists(filePath)) {
+			return new HashMap<>();
+		}
+		if (filePath.endsWith(".xml")) {
+			return loadFromXML(filePath);
+		} else {
+			return loadFromProperties(filePath);
+		}
+	}
+
+	/**
+	 * メッセージリソースからメッセージを読み込みます。<br>
+	 * @param filePath メッセージリソースパス
+	 * @return 読み込まれたメッセージリソース
+	 * @throws IOException 入出力例外が発生した場合にスローされます
+	 */
+	private Map<String, Message> loadFromProperties(String filePath) throws IOException {
+		Map<String, Message> map = new HashMap<>();
+		Properties properties = PropertiesUtil.load(filePath);
+		for (Object key : properties.keySet()) {
+			Object property = properties.get(key);
+			String code = key == null ? "" : key.toString();
+			String value = property == null ? "" : property.toString();
+			Message message = new Message(code, value);
+			map.put(message.getCode(), message);
+		}
+		return map;
+	}
+
+	/**
+	 * XMLリソースからメッセージを読み込みます。<br>
+	 * @param filePath メッセージリソースパス
+	 * @return 読み込まれたメッセージリソース
+	 * @throws IOException 入出力例外が発生した場合にスローされます
+	 * @throws ParserConfigurationException XMLドキュメントビルダの生成に失敗した場合にスローされます
+	 * @throws SAXException XML定義形式が不正な場合にスローされます
+	 */
+	private Map<String, Message> loadFromXML(String filePath) throws IOException, ParserConfigurationException, SAXException {
+		InputStream stream = null;
+		try {
+			Map<String, Message> map = new HashMap<>();
+
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+
+			stream = ResourceUtil.getInputStream(filePath);
+			Document document = builder.parse(stream);
+
+			Element messagesElement = document.getDocumentElement();
+			if (!"messages".equals(messagesElement.getNodeName())) {
+				throw new SAXException();
+			}
+
+			NodeList messageElements = messagesElement.getElementsByTagName("message");
+			for (int i = 0; i <= messageElements.getLength() - 1; i++) {
+				Element messageElement = (Element) messageElements.item(i);
+				String code = messageElement.getAttribute("code");
+				String value = messageElement.getAttribute("value");
+				if (StringUtil.isEmpty(code)) {
+					throw new SAXException("message node is code attribute required");
+				}
+				if (StringUtil.isEmpty(value)) {
+					throw new SAXException("message node is value attribute required");
+				}
+				Message message = new Message(code, value);
+				map.put(message.getCode(), message);
+			}
+
+			return map;
+		} finally {
+			if (stream != null) {
+				stream.close();
+			}
+		}
+	}
+
+	/**
+	 * 管理されているメッセージ情報を全てクリアします。<br>
+	 */
+	public void destroy() {
+		synchronized (lock) {
+			messages.clear();
+		}
+	}
+
+	/**
+	 * 他のメッセージ情報内容を自身のインスタンスにマージします。<br>
+	 * @param other マージ元インスタンス
+	 */
+	@SuppressWarnings("static-access")
+	public void merge(Messages other) {
+		if (other == null || other.equals(this)) {
 			return;
 		}
-		for (Object key : properties.keySet()) {
-			Object value = properties.get(key);
-			String defineCode = key == null ? "" : key.toString();
-			String defineMessage = value == null ? "" : value.toString();
-			addMessage(defineCode, defineMessage);
-		}
-	}
-
-	/**
-	 * 管理されている全てのメッセージ内容をクリアします。<br>
-	 */
-	public void clear() {
-		messages.clear();
-	}
-
-	/**
-	 * メッセージコードで管理されているメッセージ内容を削除します。<br>
-	 * メッセージコードはレベルサフィックスを持たないコード又は、レベルサフィックスを持つ定義コード共に指定可能です。<br>
-	 * @param code メッセージコード
-	 */
-	public void remove(String code) {
-		messages.remove(code);
-		if (Message.isValidDefineCode(code)) {
-			messages.remove(Message.getMessageCode(code));
-		}
+		this.global.messages.putAll(other.global.messages); // For other classloader
+		this.messages.putAll(other.messages);
 	}
 
 	/**
@@ -205,25 +337,20 @@ public final class Messages implements Serializable {
 		if (message != null) {
 			return message;
 		}
-		if (Message.isValidDefineCode(code)) {
-			return messages.get(Message.getMessageCode(code));
+		message = messages.get(Message.getMessageCode(code));
+		if (message != null) {
+			return message;
+		}
+		if (inheritGlobal) {
+			message = global.messages.get(code);
+			if (message != null) {
+				return message;
+			}
+			message = global.messages.get(Message.getMessageCode(code));
+			if (message != null) {
+				return message;
+			}
 		}
 		return null;
-	}
-
-	/**
-	 * メッセージ追加時の上書き許可フラグを取得します。<br>
-	 * @return メッセージ追加時の上書き許可フラグ
-	 */
-	public boolean isPermitOverwrite() {
-		return permitOverwrite;
-	}
-
-	/**
-	 * メッセージ追加時の上書き許可フラグを設定します。<br>
-	 * @param permitOverwrite メッセージ追加時の上書き許可フラグ
-	 */
-	public void setPermitOverwrite(boolean permitOverwrite) {
-		this.permitOverwrite = permitOverwrite;
 	}
 }

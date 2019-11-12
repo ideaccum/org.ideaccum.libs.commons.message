@@ -11,13 +11,13 @@ package org.ideaccum.libs.commons.message.exception;
  * 2018/06/13  Kitagawa         新規作成
  *-->
  */
-public class IllegalMessageCode extends RuntimeException {
+public class IllegalMessageCodeException extends RuntimeException {
 
 	/**
 	 * コンストラクタ<br>
 	 * @param code 利用メッセージコード
 	 */
-	public IllegalMessageCode(String code) {
+	public IllegalMessageCodeException(String code) {
 		super("Illegal message code format (" + code + ")");
 	}
 }

@@ -11,13 +11,13 @@ package org.ideaccum.libs.commons.message.exception;
  * 2018/07/10  Kitagawa         新規作成
  *-->
  */
-public class AlreadyExistsMessageCode extends RuntimeException {
+public class AlreadyExistsMessageException extends RuntimeException {
 
 	/**
 	 * コンストラクタ<br>
 	 * @param code 利用メッセージコード
 	 */
-	public AlreadyExistsMessageCode(String code) {
+	public AlreadyExistsMessageException(String code) {
 		super("Already exists message code (" + code + ")");
 	}
 }
