@@ -289,9 +289,9 @@ public final class Messages implements Serializable {
 				if (StringUtil.isEmpty(code)) {
 					throw new SAXException("message node is code attribute required");
 				}
-				if (StringUtil.isEmpty(value)) {
-					throw new SAXException("message node is value attribute required");
-				}
+				//if (StringUtil.isEmpty(value)) {
+				//	throw new SAXException("message node is value attribute required");
+				//}
 				Message message = new Message(code, value);
 				map.put(message.getCode(), message);
 			}
@@ -337,18 +337,22 @@ public final class Messages implements Serializable {
 		if (message != null) {
 			return message;
 		}
-		message = messages.get(Message.getMessageCode(code));
-		if (message != null) {
-			return message;
+		if (Message.isValidDefineCode(code)) {
+			message = messages.get(Message.getMessageCode(code));
+			if (message != null) {
+				return message;
+			}
 		}
 		if (inheritGlobal) {
 			message = global.messages.get(code);
 			if (message != null) {
 				return message;
 			}
-			message = global.messages.get(Message.getMessageCode(code));
-			if (message != null) {
-				return message;
+			if (Message.isValidDefineCode(code)) {
+				message = global.messages.get(Message.getMessageCode(code));
+				if (message != null) {
+					return message;
+				}
 			}
 		}
 		return null;
